@@ -240,6 +240,15 @@ pub fn main() !u8 {
         else => return e,
     };
 }
+
+fn convertArgs(allocator: Allocator, args: [][:0]u8) ![][]const u8 {
+    const converted = try allocator.alloc([]const u8, args.len);
+    for (args, 0..) |arg, i| {
+        converted[i] = std.mem.sliceTo(arg, 0);
+    }
+    return converted;
+}
+
 pub fn main2() !u8 {
     if (builtin.os.tag == .windows) {
         _ = try std.os.windows.WSAStartup(2, 2);
@@ -251,8 +260,10 @@ pub fn main2() !u8 {
     const args_array = try std.process.argsAlloc(allocator);
     // no need to free, os will do it
     //defer std.process.argsFree(allocator, argsArray);
+    const args_converted = try convertArgs(allocator, args_array);
+    defer arena.deinit();
 
-    var args = if (args_array.len == 0) args_array else args_array[1..];
+    var args = if (args_converted.len == 0) args_converted else args_converted[1..];
     // parse common options
 
     var index_url: []const u8 = default_index_url;
